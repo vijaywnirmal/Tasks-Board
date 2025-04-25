@@ -9,9 +9,10 @@ interface TaskColumnProps {
   clients: Client[]
   getClientById: (clientId: string | null) => Client | null
   onStatusChange: (taskId: string, newStatus: Task["status"]) => void
+  onReviewChange: (taskId: string, reviewed: "yes" | "no" | null) => void
 }
 
-export function TaskColumn({ title, tasks, clients, getClientById, onStatusChange }: TaskColumnProps) {
+export function TaskColumn({ title, tasks, clients, getClientById, onStatusChange, onReviewChange }: TaskColumnProps) {
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
   }
@@ -37,7 +38,15 @@ export function TaskColumn({ title, tasks, clients, getClientById, onStatusChang
         {tasks.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">No tasks yet</div>
         ) : (
-          tasks.map((task) => <TaskCard key={task.id} task={task} client={getClientById(task.clientId)} />)
+          tasks.map((task) => (
+            <TaskCard
+              key={task.id}
+              task={task}
+              client={getClientById(task.clientId)}
+              onReviewChange={onReviewChange}
+              columnTitle={title}
+            />
+          ))
         )}
       </CardContent>
     </Card>

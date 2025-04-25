@@ -31,6 +31,7 @@ export function TaskForm({ clients, onSubmit, onCancel }: TaskFormProps) {
       description,
       status: "todo",
       clientId,
+      reviewed: null,
     })
   }
 

@@ -14,14 +14,17 @@ export type Client = {
   color: string
 }
 
+// Update the Task type to include reviewed property
 export type Task = {
   id: string
   title: string
   description: string
   status: "todo" | "in-progress" | "completed"
   clientId: string | null
+  reviewed: "yes" | "no" | null
 }
 
+// Update the initial tasks to include the reviewed property
 export function KanbanBoard() {
   const [tasks, setTasks] = useState<Task[]>([
     {
@@ -30,6 +33,7 @@ export function KanbanBoard() {
       description: "Create wireframes for the new homepage",
       status: "todo",
       clientId: "1",
+      reviewed: null,
     },
     {
       id: "2",
@@ -37,6 +41,7 @@ export function KanbanBoard() {
       description: "Add login and signup functionality",
       status: "in-progress",
       clientId: "2",
+      reviewed: null,
     },
     {
       id: "3",
@@ -44,6 +49,7 @@ export function KanbanBoard() {
       description: "Document the API endpoints",
       status: "completed",
       clientId: "1",
+      reviewed: "yes",
     },
   ])
 
@@ -74,7 +80,27 @@ export function KanbanBoard() {
     setShowClientForm(false)
   }
 
+  // Add a function to update task review status
+  const updateTaskReviewStatus = (taskId: string, reviewed: "yes" | "no" | null) => {
+    setTasks(tasks.map((task) => (task.id === taskId ? { ...task, reviewed } : task)))
+  }
+
+  // Modify the updateTaskStatus function to check if a task can be moved to completed
   const updateTaskStatus = (taskId: string, newStatus: Task["status"]) => {
+    const task = tasks.find((t) => t.id === taskId)
+
+    // If trying to move to completed, check if reviewed
+    if (newStatus === "completed" && (!task?.reviewed || task.reviewed === "no")) {
+      alert("Task must be reviewed and marked as 'Yes' before moving to Completed")
+      return
+    }
+
+    // If task is already completed, don't allow moving back
+    if (task?.status === "completed") {
+      alert("Completed tasks cannot be moved back to earlier stages")
+      return
+    }
+
     setTasks(tasks.map((task) => (task.id === taskId ? { ...task, status: newStatus } : task)))
   }
 
@@ -113,6 +139,7 @@ export function KanbanBoard() {
           clients={clients}
           getClientById={getClientById}
           onStatusChange={updateTaskStatus}
+          onReviewChange={updateTaskReviewStatus}
         />
         <TaskColumn
           title="In Progress"
@@ -120,6 +147,7 @@ export function KanbanBoard() {
           clients={clients}
           getClientById={getClientById}
           onStatusChange={updateTaskStatus}
+          onReviewChange={updateTaskReviewStatus}
         />
         <TaskColumn
           title="Completed"
@@ -127,6 +155,7 @@ export function KanbanBoard() {
           clients={clients}
           getClientById={getClientById}
           onStatusChange={updateTaskStatus}
+          onReviewChange={updateTaskReviewStatus}
         />
       </div>
 
