@@ -1,20 +1,53 @@
+"use client"
+
+import { Edit2, Trash2 } from "lucide-react"
 import type { Client } from "@/components/kanban-board"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 
 interface ClientBadgeProps {
   client: Client
+  allTasksCompleted: boolean
+  onEdit: () => void
+  onDelete: () => void
 }
 
-export function ClientBadge({ client }: ClientBadgeProps) {
+export function ClientBadge({ client, allTasksCompleted, onEdit, onDelete }: ClientBadgeProps) {
   return (
     <Badge
       style={{
         backgroundColor: client.color,
         color: isLightColor(client.color) ? "#000" : "#fff",
       }}
-      className="font-normal"
+      className="font-normal flex items-center gap-1 pl-2 h-7"
     >
-      {client.name}
+      <span className={allTasksCompleted ? "line-through" : ""}>{client.name}</span>
+      <div className="flex items-center ml-1">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-5 w-5 p-0 hover:bg-black/10 rounded-full"
+          onClick={(e) => {
+            e.stopPropagation()
+            onEdit()
+          }}
+        >
+          <Edit2 className="h-3 w-3" />
+          <span className="sr-only">Edit client</span>
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-5 w-5 p-0 hover:bg-black/10 rounded-full"
+          onClick={(e) => {
+            e.stopPropagation()
+            onDelete()
+          }}
+        >
+          <Trash2 className="h-3 w-3" />
+          <span className="sr-only">Delete client</span>
+        </Button>
+      </div>
     </Badge>
   )
 }

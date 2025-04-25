@@ -10,9 +10,20 @@ interface TaskColumnProps {
   getClientById: (clientId: string | null) => Client | null
   onStatusChange: (taskId: string, newStatus: Task["status"]) => void
   onReviewChange: (taskId: string, reviewed: "yes" | "no" | null) => void
+  onEditTask: (task: Task) => void
+  onDeleteTask: (task: Task) => void
 }
 
-export function TaskColumn({ title, tasks, clients, getClientById, onStatusChange, onReviewChange }: TaskColumnProps) {
+export function TaskColumn({
+  title,
+  tasks,
+  clients,
+  getClientById,
+  onStatusChange,
+  onReviewChange,
+  onEditTask,
+  onDeleteTask,
+}: TaskColumnProps) {
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
   }
@@ -45,6 +56,8 @@ export function TaskColumn({ title, tasks, clients, getClientById, onStatusChang
               client={getClientById(task.clientId)}
               onReviewChange={onReviewChange}
               columnTitle={title}
+              onEdit={() => onEditTask(task)}
+              onDelete={() => onDeleteTask(task)}
             />
           ))
         )}
