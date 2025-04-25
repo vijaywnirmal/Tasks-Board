@@ -1,4 +1,4 @@
-# Kanban board setup
+# Tasks board setup
 
 *Automatically synced with your [v0.dev](https://v0.dev) deployments*
 
@@ -12,19 +12,11 @@ Any changes you make to your deployed app will be automatically pushed to this r
 
 ## Deployment
 
-Your project is live at:
+The project is live at:
 
 **[https://vercel.com/vijaywnirmals-projects/v0-kanban-board-setup](https://vercel.com/vijaywnirmals-projects/v0-kanban-board-setup)**
 
-## Build your app
+## Changes which will be implemented
 
-Continue building your app on:
-
-**[https://v0.dev/chat/projects/wmgTdEO3qMe](https://v0.dev/chat/projects/wmgTdEO3qMe)**
-
-## How It Works
-
-1. Create and modify your project using [v0.dev](https://v0.dev)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+1) The tasks assigned to a certain client will be deleted when the client name is deleted
+2) Randomize color when adding a new client
