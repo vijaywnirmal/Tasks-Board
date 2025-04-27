@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { TaskColumn } from "@/components/task-column"
@@ -36,38 +36,37 @@ export type Task = {
 }
 
 export function KanbanBoard() {
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: "1",
-      title: "Design homepage",
-      description: "Create wireframes for the new homepage",
-      status: "todo",
-      clientId: "1",
-      reviewed: null,
-    },
-    {
-      id: "2",
-      title: "Implement authentication",
-      description: "Add login and signup functionality",
-      status: "in-progress",
-      clientId: "2",
-      reviewed: null,
-    },
-    {
-      id: "3",
-      title: "Write documentation",
-      description: "Document the API endpoints",
-      status: "completed",
-      clientId: "1",
-      reviewed: "yes",
-    },
-  ])
+  const [tasks, setTasks] = useState<Task[]>(() => {
+    // Load tasks from localStorage on initial render
+    if (typeof window !== "undefined") {
+      const savedTasks = localStorage.getItem("kanban-tasks")
+      return savedTasks ? JSON.parse(savedTasks) : []
+    }
+    return []
+  })
 
-  const [clients, setClients] = useState<Client[]>([
-    { id: "1", name: "Acme Inc", color: "#f97316" },
-    { id: "2", name: "Globex Corp", color: "#8b5cf6" },
-    { id: "3", name: "Stark Industries", color: "#06b6d4" },
-  ])
+  const [clients, setClients] = useState<Client[]>(() => {
+    // Load clients from localStorage on initial render
+    if (typeof window !== "undefined") {
+      const savedClients = localStorage.getItem("kanban-clients")
+      return savedClients ? JSON.parse(savedClients) : []
+    }
+    return []
+  })
+
+  // Save tasks to localStorage whenever they change
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("kanban-tasks", JSON.stringify(tasks))
+    }
+  }, [tasks])
+
+  // Save clients to localStorage whenever they change
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("kanban-clients", JSON.stringify(clients))
+    }
+  }, [clients])
 
   const [showTaskForm, setShowTaskForm] = useState(false)
   const [showClientForm, setShowClientForm] = useState(false)
