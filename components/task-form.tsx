@@ -93,13 +93,24 @@ export function TaskForm({ clients, onSubmit, onCancel }: TaskFormProps) {
                   <Button
                     variant="outline"
                     className={cn("w-full justify-start text-left font-normal", !dueDate && "text-muted-foreground")}
+                    onClick={(e) => e.stopPropagation()}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {dueDate ? format(dueDate, "PPP") : "Select a date"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar mode="single" selected={dueDate} onSelect={setDueDate} initialFocus />
+                <PopoverContent className="w-auto p-0 z-[100]" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={dueDate}
+                    onSelect={setDueDate}
+                    initialFocus
+                    onDayClick={(day, modifiers) => {
+                      if (!modifiers.disabled) {
+                        setDueDate(day)
+                      }
+                    }}
+                  />
                 </PopoverContent>
               </Popover>
               {dueDate && (
