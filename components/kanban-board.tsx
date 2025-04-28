@@ -19,54 +19,27 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { supabase } from "@/lib/supabase"
+import {
+  type Client,
+  type Task,
+  getClients,
+  getTasks,
+  createClient,
+  updateClient,
+  deleteClient,
+  createTask,
+  updateTask,
+  deleteTask,
+  generateRandomColor,
+} from "@/lib/db"
 
-export type Client = {
-  id: string
-  name: string
-  color: string
-}
-
-export type Task = {
-  id: string
-  title: string
-  description: string
-  status: "todo" | "in-progress" | "completed"
-  clientId: string | null
-  reviewed: "yes" | "no" | null
-}
+export type { Client, Task }
 
 export function KanbanBoard() {
-  const [tasks, setTasks] = useState<Task[]>(() => {
-    // Load tasks from localStorage on initial render
-    if (typeof window !== "undefined") {
-      const savedTasks = localStorage.getItem("kanban-tasks")
-      return savedTasks ? JSON.parse(savedTasks) : []
-    }
-    return []
-  })
-
-  const [clients, setClients] = useState<Client[]>(() => {
-    // Load clients from localStorage on initial render
-    if (typeof window !== "undefined") {
-      const savedClients = localStorage.getItem("kanban-clients")
-      return savedClients ? JSON.parse(savedClients) : []
-    }
-    return []
-  })
-
-  // Save tasks to localStorage whenever they change
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("kanban-tasks", JSON.stringify(tasks))
-    }
-  }, [tasks])
-
-  // Save clients to localStorage whenever they change
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("kanban-clients", JSON.stringify(clients))
-    }
-  }, [clients])
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [clients, setClients] = useState<Client[]>([])
+  const [loading, setLoading] = useState(true)
 
   const [showTaskForm, setShowTaskForm] = useState(false)
   const [showClientForm, setShowClientForm] = useState(false)
@@ -75,67 +48,182 @@ export function KanbanBoard() {
   const [deletingClient, setDeletingClient] = useState<Client | null>(null)
   const [deletingTask, setDeletingTask] = useState<Task | null>(null)
 
-  const addTask = (task: Omit<Task, "id">) => {
-    const newTask = {
-      ...task,
-      id: Math.random().toString(36).substring(2, 9),
+  // Load initial data
+  useEffect(() => {
+    async function loadData() {
+      setLoading(true)
+      const [clientsData, tasksData] = await Promise.all([getClients(), getTasks()])
+      setClients(clientsData)
+      setTasks(tasksData)
+      setLoading(false)
     }
-    setTasks([...tasks, newTask])
+
+    loadData()
+
+    // Set up real-time subscriptions
+    const clientsSubscription = supabase
+      .channel("clients-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "clients",
+        },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            const newClient = {
+              id: payload.new.id,
+              name: payload.new.name,
+              color: payload.new.color,
+            }
+            setClients((prev) => [...prev, newClient])
+          } else if (payload.eventType === "UPDATE") {
+            const updatedClient = {
+              id: payload.new.id,
+              name: payload.new.name,
+              color: payload.new.color,
+            }
+            setClients((prev) => prev.map((client) => (client.id === updatedClient.id ? updatedClient : client)))
+          } else if (payload.eventType === "DELETE") {
+            setClients((prev) => prev.filter((client) => client.id !== payload.old.id))
+          }
+        },
+      )
+      .subscribe()
+
+    const tasksSubscription = supabase
+      .channel("tasks-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "tasks",
+        },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            const newTask = {
+              id: payload.new.id,
+              title: payload.new.title,
+              description: payload.new.description || "",
+              status: payload.new.status,
+              clientId: payload.new.client_id,
+              reviewed: payload.new.reviewed,
+              dueDate: payload.new.due_date,
+            }
+            setTasks((prev) => [...prev, newTask])
+          } else if (payload.eventType === "UPDATE") {
+            const updatedTask = {
+              id: payload.new.id,
+              title: payload.new.title,
+              description: payload.new.description || "",
+              status: payload.new.status,
+              clientId: payload.new.client_id,
+              reviewed: payload.new.reviewed,
+              dueDate: payload.new.due_date,
+            }
+            setTasks((prev) => prev.map((task) => (task.id === updatedTask.id ? updatedTask : task)))
+          } else if (payload.eventType === "DELETE") {
+            setTasks((prev) => prev.filter((task) => task.id !== payload.old.id))
+          }
+        },
+      )
+      .subscribe()
+
+    return () => {
+      clientsSubscription.unsubscribe()
+      tasksSubscription.unsubscribe()
+    }
+  }, [])
+
+  const addTask = async (task: Omit<Task, "id">) => {
+    const newTask = await createTask(task)
+    if (newTask) {
+      setTasks([...tasks, newTask])
+    }
     setShowTaskForm(false)
   }
 
-  const addClient = (client: Omit<Client, "id">) => {
-    const newClient = {
-      ...client,
-      id: Math.random().toString(36).substring(2, 9),
+  const addClient = async (client: Omit<Client, "id">) => {
+    const newClient = await createClient(client)
+    if (newClient) {
+      setClients([...clients, newClient])
     }
-    setClients([...clients, newClient])
     setShowClientForm(false)
   }
 
-  const updateTaskReviewStatus = (taskId: string, reviewed: "yes" | "no" | null) => {
-    setTasks(tasks.map((task) => (task.id === taskId ? { ...task, reviewed } : task)))
+  const updateTaskReviewStatus = async (taskId: string, reviewed: "yes" | "no" | null) => {
+    const task = tasks.find((t) => t.id === taskId)
+    if (!task) return
+
+    const updatedTask = { ...task, reviewed }
+    const success = await updateTask(updatedTask)
+
+    if (success) {
+      setTasks(tasks.map((t) => (t.id === taskId ? updatedTask : t)))
+    }
   }
 
-  const updateTaskStatus = (taskId: string, newStatus: Task["status"]) => {
+  const updateTaskStatus = async (taskId: string, newStatus: Task["status"]) => {
     const task = tasks.find((t) => t.id === taskId)
+    if (!task) return
 
-    if (newStatus === "completed" && (!task?.reviewed || task.reviewed === "no")) {
+    if (newStatus === "completed" && (!task.reviewed || task.reviewed === "no")) {
       alert("Task must be reviewed and marked as 'Yes' before moving to Completed")
       return
     }
 
-    if (task?.status === "completed") {
+    if (task.status === "completed") {
       alert("Completed tasks cannot be moved back to earlier stages")
       return
     }
 
-    setTasks(tasks.map((task) => (task.id === taskId ? { ...task, status: newStatus } : task)))
+    const updatedTask = { ...task, status: newStatus }
+    const success = await updateTask(updatedTask)
+
+    if (success) {
+      setTasks(tasks.map((t) => (t.id === taskId ? updatedTask : t)))
+    }
   }
 
-  // New function to edit a client
-  const editClient = (updatedClient: Client) => {
-    setClients(clients.map((client) => (client.id === updatedClient.id ? updatedClient : client)))
+  const editClientHandler = async (updatedClient: Client) => {
+    const success = await updateClient(updatedClient)
+    if (success) {
+      setClients(clients.map((client) => (client.id === updatedClient.id ? updatedClient : client)))
+    }
     setEditingClient(null)
   }
 
-  // New function to delete a client
-  const deleteClient = (clientId: string) => {
-    setClients(clients.filter((client) => client.id !== clientId))
-    // Update tasks that were assigned to this client
-    setTasks(tasks.map((task) => (task.clientId === clientId ? { ...task, clientId: null } : task)))
+  const deleteClientHandler = async (clientId: string) => {
+    const success = await deleteClient(clientId)
+    if (success) {
+      setClients(clients.filter((client) => client.id !== clientId))
+      // Update tasks that were assigned to this client
+      const updatedTasks = tasks
+        .filter((task) => task.clientId === clientId)
+        .map((task) => ({ ...task, clientId: null }))
+
+      for (const task of updatedTasks) {
+        await updateTask(task)
+      }
+    }
     setDeletingClient(null)
   }
 
-  // New function to edit a task
-  const editTask = (updatedTask: Task) => {
-    setTasks(tasks.map((task) => (task.id === updatedTask.id ? updatedTask : task)))
+  const editTaskHandler = async (updatedTask: Task) => {
+    const success = await updateTask(updatedTask)
+    if (success) {
+      setTasks(tasks.map((task) => (task.id === updatedTask.id ? updatedTask : task)))
+    }
     setEditingTask(null)
   }
 
-  // New function to delete a task
-  const deleteTask = (taskId: string) => {
-    setTasks(tasks.filter((task) => task.id !== taskId))
+  const deleteTaskHandler = async (taskId: string) => {
+    const success = await deleteTask(taskId)
+    if (success) {
+      setTasks(tasks.filter((task) => task.id !== taskId))
+    }
     setDeletingTask(null)
   }
 
@@ -148,10 +236,23 @@ export function KanbanBoard() {
     return clients.find((client) => client.id === clientId) || null
   }
 
-  // Function to check if all tasks for a client are completed
   const areAllClientTasksCompleted = (clientId: string) => {
     const clientTasks = tasks.filter((task) => task.clientId === clientId)
     return clientTasks.length > 0 && clientTasks.every((task) => task.status === "completed")
+  }
+
+  const handleAddClient = () => {
+    // Auto-generate a color for the new client
+    const existingColors = clients.map((client) => client.color)
+    const randomColor = generateRandomColor(existingColors)
+
+    // Pre-fill the client form with the generated color
+    setShowClientForm(true)
+    return randomColor
+  }
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-64">Loading...</div>
   }
 
   return (
@@ -214,17 +315,27 @@ export function KanbanBoard() {
 
       {showTaskForm && <TaskForm clients={clients} onSubmit={addTask} onCancel={() => setShowTaskForm(false)} />}
 
-      {showClientForm && <ClientForm onSubmit={addClient} onCancel={() => setShowClientForm(false)} />}
+      {showClientForm && (
+        <ClientForm
+          initialColor={generateRandomColor(clients.map((c) => c.color))}
+          onSubmit={addClient}
+          onCancel={() => setShowClientForm(false)}
+        />
+      )}
 
       {editingClient && (
-        <EditClientForm client={editingClient} onSubmit={editClient} onCancel={() => setEditingClient(null)} />
+        <EditClientForm client={editingClient} onSubmit={editClientHandler} onCancel={() => setEditingClient(null)} />
       )}
 
       {editingTask && (
-        <EditTaskForm task={editingTask} clients={clients} onSubmit={editTask} onCancel={() => setEditingTask(null)} />
+        <EditTaskForm
+          task={editingTask}
+          clients={clients}
+          onSubmit={editTaskHandler}
+          onCancel={() => setEditingTask(null)}
+        />
       )}
 
-      {/* Client deletion confirmation dialog */}
       {deletingClient && (
         <AlertDialog open={!!deletingClient} onOpenChange={() => setDeletingClient(null)}>
           <AlertDialogContent>
@@ -236,13 +347,12 @@ export function KanbanBoard() {
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={() => deleteClient(deletingClient.id)}>Delete</AlertDialogAction>
+              <AlertDialogAction onClick={() => deleteClientHandler(deletingClient.id)}>Delete</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
       )}
 
-      {/* Task deletion confirmation dialog */}
       {deletingTask && (
         <AlertDialog open={!!deletingTask} onOpenChange={() => setDeletingTask(null)}>
           <AlertDialogContent>
@@ -254,7 +364,7 @@ export function KanbanBoard() {
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={() => deleteTask(deletingTask.id)}>Delete</AlertDialogAction>
+              <AlertDialogAction onClick={() => deleteTaskHandler(deletingTask.id)}>Delete</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

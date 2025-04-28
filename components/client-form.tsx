@@ -2,21 +2,27 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import type { Client } from "@/components/kanban-board"
+import type { Client } from "@/lib/db"
 
 interface ClientFormProps {
+  initialColor?: string
   onSubmit: (client: Omit<Client, "id">) => void
   onCancel: () => void
 }
 
-export function ClientForm({ onSubmit, onCancel }: ClientFormProps) {
+export function ClientForm({ initialColor = "#3b82f6", onSubmit, onCancel }: ClientFormProps) {
   const [name, setName] = useState("")
-  const [color, setColor] = useState("#3b82f6")
+  const [color, setColor] = useState(initialColor)
+
+  // Update color if initialColor changes
+  useEffect(() => {
+    setColor(initialColor)
+  }, [initialColor])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()

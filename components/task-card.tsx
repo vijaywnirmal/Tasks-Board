@@ -7,8 +7,9 @@ import { ClientBadge } from "@/components/client-badge"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { Edit2, Trash2 } from "lucide-react"
-import type { Client, Task } from "@/components/kanban-board"
+import { Edit2, Trash2, Calendar } from "lucide-react"
+import { format, parseISO, isBefore, addDays } from "date-fns"
+import type { Client, Task } from "@/lib/db"
 
 interface TaskCardProps {
   task: Task
@@ -27,6 +28,39 @@ export function TaskCard({ task, client, onReviewChange, columnTitle, onEdit, on
   // Only allow dragging if not in completed column
   const isDraggable = task.status !== "completed"
   const isCompleted = columnTitle === "Completed"
+
+  // Due date status
+  const getDueDateStatus = () => {
+    if (!task.dueDate) return null
+
+    const dueDate = parseISO(task.dueDate)
+    const today = new Date()
+    const tomorrow = addDays(today, 1)
+
+    if (isBefore(dueDate, today)) {
+      return "overdue"
+    } else if (isBefore(dueDate, tomorrow)) {
+      return "due-today"
+    } else if (isBefore(dueDate, addDays(today, 3))) {
+      return "due-soon"
+    }
+    return "upcoming"
+  }
+
+  const dueDateStatus = getDueDateStatus()
+
+  const getDueDateColor = () => {
+    switch (dueDateStatus) {
+      case "overdue":
+        return "text-red-500"
+      case "due-today":
+        return "text-orange-500"
+      case "due-soon":
+        return "text-yellow-500"
+      default:
+        return "text-gray-500"
+    }
+  }
 
   return (
     <Card
@@ -75,6 +109,17 @@ export function TaskCard({ task, client, onReviewChange, columnTitle, onEdit, on
       </CardHeader>
       <CardContent className="p-3 pt-1">
         <CardDescription>{task.description}</CardDescription>
+
+        {task.dueDate && (
+          <div className={`flex items-center mt-2 text-xs ${getDueDateColor()}`}>
+            <Calendar className="h-3 w-3 mr-1" />
+            <span>
+              Due: {format(parseISO(task.dueDate), "MMM d, yyyy")}
+              {dueDateStatus === "overdue" && " (Overdue)"}
+              {dueDateStatus === "due-today" && " (Today)"}
+            </span>
+          </div>
+        )}
       </CardContent>
 
       {/* Show review options only for In Progress tasks */}

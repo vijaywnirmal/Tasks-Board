@@ -9,7 +9,12 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import type { Client, Task } from "@/components/kanban-board"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { CalendarIcon } from "lucide-react"
+import { format } from "date-fns"
+import { cn } from "@/lib/utils"
+import type { Client, Task } from "@/lib/db"
 
 interface TaskFormProps {
   clients: Client[]
@@ -21,6 +26,7 @@ export function TaskForm({ clients, onSubmit, onCancel }: TaskFormProps) {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [clientId, setClientId] = useState<string | null>(null)
+  const [dueDate, setDueDate] = useState<Date | null>(null)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,6 +38,7 @@ export function TaskForm({ clients, onSubmit, onCancel }: TaskFormProps) {
       status: "todo",
       clientId,
       reviewed: null,
+      dueDate: dueDate ? dueDate.toISOString() : null,
     })
   }
 
@@ -65,7 +72,7 @@ export function TaskForm({ clients, onSubmit, onCancel }: TaskFormProps) {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="client">Client</Label>
-              <Select onValueChange={setClientId}>
+              <Select onValueChange={(value) => setClientId(value === "no-client" ? null : value)}>
                 <SelectTrigger id="client">
                   <SelectValue placeholder="Select a client" />
                 </SelectTrigger>
@@ -78,6 +85,28 @@ export function TaskForm({ clients, onSubmit, onCancel }: TaskFormProps) {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="dueDate">Due Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn("w-full justify-start text-left font-normal", !dueDate && "text-muted-foreground")}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dueDate ? format(dueDate, "PPP") : "Select a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar mode="single" selected={dueDate} onSelect={setDueDate} initialFocus />
+                </PopoverContent>
+              </Popover>
+              {dueDate && (
+                <Button type="button" variant="ghost" size="sm" onClick={() => setDueDate(null)} className="w-fit">
+                  Clear date
+                </Button>
+              )}
             </div>
           </div>
           <DialogFooter>

@@ -9,7 +9,12 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import type { Client, Task } from "@/components/kanban-board"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { CalendarIcon } from "lucide-react"
+import { format, parseISO } from "date-fns"
+import { cn } from "@/lib/utils"
+import type { Client, Task } from "@/lib/db"
 
 interface EditTaskFormProps {
   task: Task
@@ -22,6 +27,7 @@ export function EditTaskForm({ task, clients, onSubmit, onCancel }: EditTaskForm
   const [title, setTitle] = useState(task.title)
   const [description, setDescription] = useState(task.description)
   const [clientId, setClientId] = useState<string | null>(task.clientId)
+  const [dueDate, setDueDate] = useState<Date | null>(task.dueDate ? parseISO(task.dueDate) : null)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,6 +38,7 @@ export function EditTaskForm({ task, clients, onSubmit, onCancel }: EditTaskForm
       title,
       description,
       clientId,
+      dueDate: dueDate ? dueDate.toISOString() : null,
     })
   }
 
@@ -81,6 +88,28 @@ export function EditTaskForm({ task, clients, onSubmit, onCancel }: EditTaskForm
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="dueDate">Due Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn("w-full justify-start text-left font-normal", !dueDate && "text-muted-foreground")}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dueDate ? format(dueDate, "PPP") : "Select a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar mode="single" selected={dueDate} onSelect={setDueDate} initialFocus />
+                </PopoverContent>
+              </Popover>
+              {dueDate && (
+                <Button type="button" variant="ghost" size="sm" onClick={() => setDueDate(null)} className="w-fit">
+                  Clear date
+                </Button>
+              )}
             </div>
           </div>
           <DialogFooter>
