@@ -1,15 +1,17 @@
-import { useCallback } from 'react'
-import { Task } from '@/lib/db'
+import type React from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { TaskCard } from "@/components/task-card"
+import type { Client, Task } from "@/components/kanban-board"
 
 interface TaskColumnProps {
   title: string
   tasks: Task[]
   clients: Client[]
-  getClientById: (id: string) => Client | undefined
-  onStatusChange: (taskId: string, newStatus: Task['status']) => void
-  onReviewChange: (taskId: string, newReview: Task['reviewed']) => void
-  onEditTask: (taskId: string) => void
-  onDeleteTask: (taskId: string) => void
+  getClientById: (clientId: string | null) => Client | null
+  onStatusChange: (taskId: string, newStatus: Task["status"]) => void
+  onReviewChange: (taskId: string, reviewed: "yes" | "no" | null) => void
+  onEditTask: (task: Task) => void
+  onDeleteTask: (task: Task) => void
 }
 
 export function TaskColumn({
@@ -22,40 +24,44 @@ export function TaskColumn({
   onEditTask,
   onDeleteTask,
 }: TaskColumnProps) {
-  const handleDragOver = useCallback((e: React.DragEvent) => {
+  const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
-  }, [])
+  }
 
-  const handleDrop = useCallback(
-    (e: React.DragEvent, status: Task["status"]) => {
-      e.preventDefault()
-      const taskId = e.dataTransfer.getData("taskId")
-      onStatusChange(taskId, status)
-    },
-    [onStatusChange]
-  )
+  const handleDrop = (e: React.DragEvent, status: Task["status"]) => {
+    e.preventDefault()
+    const taskId = e.dataTransfer.getData("taskId")
+    onStatusChange(taskId, status)
+  }
+
+  const getStatusFromTitle = (title: string): Task["status"] => {
+    if (title === "To Do") return "todo"
+    if (title === "In Progress") return "in-progress"
+    return "completed"
+  }
 
   return (
-    <div className="task-column">
-      <h2>{title}</h2>
-      <div
-        onDragOver={handleDragOver}
-        onDrop={(e) => handleDrop(e, title as Task["status"])}
-        className="task-list"
-      >
-        {tasks.map((task) => {
-          const client = getClientById(task.clientId)
-          return (
-            <div key={task.id} className="task-item">
-              <h3>{task.title}</h3>
-              <p>{task.description}</p>
-              <p>{client?.name}</p>
-              <button onClick={() => onEditTask(task.id)}>Edit</button>
-              <button onClick={() => onDeleteTask(task.id)}>Delete</button>
-            </div>
-          )
-        })}
-      </div>
-    </div>
+    <Card className="h-full" onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, getStatusFromTitle(title))}>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-xl">{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {tasks.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">No tasks yet</div>
+        ) : (
+          tasks.map((task) => (
+            <TaskCard
+              key={task.id}
+              task={task}
+              client={getClientById(task.clientId)}
+              onReviewChange={onReviewChange}
+              columnTitle={title}
+              onEdit={() => onEditTask(task)}
+              onDelete={() => onDeleteTask(task)}
+            />
+          ))
+        )}
+      </CardContent>
+    </Card>
   )
 }

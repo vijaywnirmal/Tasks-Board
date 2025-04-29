@@ -13,7 +13,7 @@ export type Task = {
   status: "todo" | "in-progress" | "completed"
   clientId: string | null
   reviewed: "yes" | "no" | null
-  dueDate: string | null
+  dueDate: string | null // ISO string format
 }
 
 // Client CRUD operations
@@ -35,10 +35,12 @@ export async function getClients(): Promise<Client[]> {
 export async function createClient(client: Omit<Client, "id">): Promise<Client | null> {
   const { data, error } = await supabase
     .from("clients")
-    .insert([{
-      name: client.name,
-      color: client.color,
-    }])
+    .insert([
+      {
+        name: client.name,
+        color: client.color,
+      },
+    ])
     .select()
 
   if (error) {
@@ -104,14 +106,16 @@ export async function getTasks(): Promise<Task[]> {
 export async function createTask(task: Omit<Task, "id">): Promise<Task | null> {
   const { data, error } = await supabase
     .from("tasks")
-    .insert([{
-      title: task.title,
-      description: task.description,
-      status: task.status,
-      client_id: task.clientId,
-      reviewed: task.reviewed,
-      due_date: task.dueDate,
-    }])
+    .insert([
+      {
+        title: task.title,
+        description: task.description,
+        status: task.status,
+        client_id: task.clientId,
+        reviewed: task.reviewed,
+        due_date: task.dueDate,
+      },
+    ])
     .select()
 
   if (error) {

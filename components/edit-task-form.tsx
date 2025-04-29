@@ -28,7 +28,6 @@ export function EditTaskForm({ task, clients, onSubmit, onCancel }: EditTaskForm
   const [description, setDescription] = useState(task.description)
   const [clientId, setClientId] = useState<string | null>(task.clientId)
   const [dueDate, setDueDate] = useState<Date | null>(task.dueDate ? parseISO(task.dueDate) : null)
-  const [open, setOpen] = useState(false)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -92,27 +91,28 @@ export function EditTaskForm({ task, clients, onSubmit, onCancel }: EditTaskForm
             </div>
             <div className="grid gap-2">
               <Label htmlFor="dueDate">Due Date</Label>
-              <Popover open={open} onOpenChange={setOpen}>
+              <Popover>
                 <PopoverTrigger asChild>
                   <Button
-                    id="dueDate"
-                    type="button"
                     variant="outline"
                     className={cn("w-full justify-start text-left font-normal", !dueDate && "text-muted-foreground")}
+                    onClick={(e) => e.stopPropagation()}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {dueDate ? format(dueDate, "PPP") : "Select a date"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0 z-[100]" align="start">
                   <Calendar
                     mode="single"
                     selected={dueDate}
-                    onSelect={(date) => {
-                      setDueDate(date)
-                      setOpen(false)
-                    }}
+                    onSelect={setDueDate}
                     initialFocus
+                    onDayClick={(day, modifiers) => {
+                      if (!modifiers.disabled) {
+                        setDueDate(day)
+                      }
+                    }}
                   />
                 </PopoverContent>
               </Popover>
