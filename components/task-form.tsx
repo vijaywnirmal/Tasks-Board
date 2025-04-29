@@ -44,7 +44,7 @@ export function TaskForm({ clients, onSubmit, onCancel }: TaskFormProps) {
 
   return (
     <Dialog open={true} onOpenChange={onCancel}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] overflow-visible">
         <DialogHeader>
           <DialogTitle>Add New Task</DialogTitle>
         </DialogHeader>
@@ -99,7 +99,7 @@ export function TaskForm({ clients, onSubmit, onCancel }: TaskFormProps) {
                     {dueDate ? format(dueDate, "PPP") : "Select a date"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 z-[100]" align="start">
+                <PopoverContent className="w-auto p-0 z-[9999]" align="start">
                   <Calendar
                     mode="single"
                     selected={dueDate}
