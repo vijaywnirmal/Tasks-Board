@@ -1,8 +1,6 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
+import { useState, useReducer, useCallback } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -22,25 +20,40 @@ interface TaskFormProps {
   onCancel: () => void
 }
 
-export function TaskForm({ clients, onSubmit, onCancel }: TaskFormProps) {
-  const [title, setTitle] = useState("")
-  const [description, setDescription] = useState("")
-  const [clientId, setClientId] = useState<string | null>(null)
-  const [dueDate, setDueDate] = useState<Date | null>(null)
+// Initial state and reducer for the form state management
+const initialState = {
+  title: '',
+  description: '',
+  clientId: null,
+  dueDate: null,
+}
 
-  const handleSubmit = (e: React.FormEvent) => {
+function reducer(state, action) {
+  switch (action.type) {
+    case 'SET_FIELD':
+      return { ...state, [action.field]: action.value }
+    default:
+      return state
+  }
+}
+
+export function TaskForm({ clients, onSubmit, onCancel }: TaskFormProps) {
+  const [state, dispatch] = useReducer(reducer, initialState)
+  const [open, setOpen] = useState(false)
+
+  const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault()
-    if (!title.trim()) return
+    if (!state.title.trim()) return
 
     onSubmit({
-      title,
-      description,
+      title: state.title,
+      description: state.description,
       status: "todo",
-      clientId,
+      clientId: state.clientId,
       reviewed: null,
-      dueDate: dueDate ? dueDate.toISOString() : null,
+      dueDate: state.dueDate ? state.dueDate.toISOString() : null,
     })
-  }
+  }, [state, onSubmit])
 
   return (
     <Dialog open={true} onOpenChange={onCancel}>
@@ -54,8 +67,8 @@ export function TaskForm({ clients, onSubmit, onCancel }: TaskFormProps) {
               <Label htmlFor="title">Title</Label>
               <Input
                 id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                value={state.title}
+                onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'title', value: e.target.value })}
                 placeholder="Task title"
                 required
               />
@@ -64,15 +77,15 @@ export function TaskForm({ clients, onSubmit, onCancel }: TaskFormProps) {
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                value={state.description}
+                onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'description', value: e.target.value })}
                 placeholder="Task description"
                 rows={3}
               />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="client">Client</Label>
-              <Select onValueChange={(value) => setClientId(value === "no-client" ? null : value)}>
+              <Select onValueChange={(value) => dispatch({ type: 'SET_FIELD', field: 'clientId', value: value === 'no-client' ? null : value })}>
                 <SelectTrigger id="client">
                   <SelectValue placeholder="Select a client" />
                 </SelectTrigger>
@@ -88,34 +101,32 @@ export function TaskForm({ clients, onSubmit, onCancel }: TaskFormProps) {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="dueDate">Due Date</Label>
-              <div className="relative">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      id="dueDate"
-                      type="button"
-                      variant="outline"
-                      className={cn("w-full justify-start text-left font-normal", !dueDate && "text-muted-foreground")}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {dueDate ? format(dueDate, "PPP") : "Select a date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" onClick={(e) => e.stopPropagation()}>
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <Calendar
-                        mode="single"
-                        selected={dueDate}
-                        onSelect={setDueDate}
-                        initialFocus
-                        className="border-none shadow-none"
-                      />
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              </div>
-              {dueDate && (
-                <Button type="button" variant="ghost" size="sm" onClick={() => setDueDate(null)} className="w-fit">
+              <Popover open={open} onOpenChange={setOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="dueDate"
+                    type="button"
+                    variant="outline"
+                    className={cn("w-full justify-start text-left font-normal", !state.dueDate && "text-muted-foreground")}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {state.dueDate ? format(state.dueDate, "PPP") : "Select a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={state.dueDate}
+                    onSelect={(date) => {
+                      dispatch({ type: 'SET_FIELD', field: 'dueDate', value: date })
+                      setOpen(false)
+                    }}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              {state.dueDate && (
+                <Button type="button" variant="ghost" size="sm" onClick={() => dispatch({ type: 'SET_FIELD', field: 'dueDate', value: null })} className="w-fit">
                   Clear date
                 </Button>
               )}
