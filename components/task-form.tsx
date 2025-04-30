@@ -84,7 +84,7 @@ export function TaskForm({ clients, onSubmit, onCancel }: TaskFormProps) {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="priority">Priority</Label>
-              <Select onValueChange={(value) => setPriority(value as Priority)}>
+              <Select onValueChange={(value) => setPriority(value === "null" ? null : (value as Priority))}>
                 <SelectTrigger id="priority">
                   <SelectValue placeholder="Select priority" />
                 </SelectTrigger>

@@ -110,7 +110,7 @@ export function KanbanBoard() {
               status: payload.new.status,
               clientId: payload.new.client_id,
               reviewed: payload.new.reviewed,
-              dueDate: payload.new.due_date,
+              priority: payload.new.priority,
             }
             setTasks((prev) => [...prev, newTask])
           } else if (payload.eventType === "UPDATE") {
@@ -121,7 +121,7 @@ export function KanbanBoard() {
               status: payload.new.status,
               clientId: payload.new.client_id,
               reviewed: payload.new.reviewed,
-              dueDate: payload.new.due_date,
+              priority: payload.new.priority,
             }
             setTasks((prev) => prev.map((task) => (task.id === updatedTask.id ? updatedTask : task)))
           } else if (payload.eventType === "DELETE") {
