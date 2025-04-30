@@ -6,6 +6,8 @@ export type Client = {
   color: string
 }
 
+export type Priority = "high" | "medium" | "low" | null
+
 export type Task = {
   id: string
   title: string
@@ -13,7 +15,7 @@ export type Task = {
   status: "todo" | "in-progress" | "completed"
   clientId: string | null
   reviewed: "yes" | "no" | null
-  dueDate: string | null // ISO string format
+  priority: Priority
 }
 
 // Client CRUD operations
@@ -99,7 +101,7 @@ export async function getTasks(): Promise<Task[]> {
     status: task.status as Task["status"],
     clientId: task.client_id,
     reviewed: task.reviewed as Task["reviewed"],
-    dueDate: task.due_date,
+    priority: task.priority as Priority,
   }))
 }
 
@@ -113,7 +115,7 @@ export async function createTask(task: Omit<Task, "id">): Promise<Task | null> {
         status: task.status,
         client_id: task.clientId,
         reviewed: task.reviewed,
-        due_date: task.dueDate,
+        priority: task.priority,
       },
     ])
     .select()
@@ -130,7 +132,7 @@ export async function createTask(task: Omit<Task, "id">): Promise<Task | null> {
     status: data[0].status,
     clientId: data[0].client_id,
     reviewed: data[0].reviewed,
-    dueDate: data[0].due_date,
+    priority: data[0].priority,
   }
 }
 
@@ -143,7 +145,7 @@ export async function updateTask(task: Task): Promise<boolean> {
       status: task.status,
       client_id: task.clientId,
       reviewed: task.reviewed,
-      due_date: task.dueDate,
+      priority: task.priority,
     })
     .eq("id", task.id)
 

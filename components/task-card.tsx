@@ -7,9 +7,8 @@ import { ClientBadge } from "@/components/client-badge"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { Edit2, Trash2, Calendar } from "lucide-react"
-import { format, parseISO, isBefore, addDays } from "date-fns"
-import type { Client, Task } from "@/lib/db"
+import { Edit2, Trash2, AlertTriangle, AlertCircle, AlertOctagon } from "lucide-react"
+import type { Client, Task, Priority } from "@/lib/db"
 
 interface TaskCardProps {
   task: Task
@@ -29,36 +28,30 @@ export function TaskCard({ task, client, onReviewChange, columnTitle, onEdit, on
   const isDraggable = task.status !== "completed"
   const isCompleted = columnTitle === "Completed"
 
-  // Due date status
-  const getDueDateStatus = () => {
-    if (!task.dueDate) return null
-
-    const dueDate = parseISO(task.dueDate)
-    const today = new Date()
-    const tomorrow = addDays(today, 1)
-
-    if (isBefore(dueDate, today)) {
-      return "overdue"
-    } else if (isBefore(dueDate, tomorrow)) {
-      return "due-today"
-    } else if (isBefore(dueDate, addDays(today, 3))) {
-      return "due-soon"
+  // Priority display
+  const getPriorityIcon = (priority: Priority) => {
+    switch (priority) {
+      case "high":
+        return <AlertOctagon className="h-4 w-4 text-red-500" />
+      case "medium":
+        return <AlertTriangle className="h-4 w-4 text-amber-500" />
+      case "low":
+        return <AlertCircle className="h-4 w-4 text-blue-500" />
+      default:
+        return null
     }
-    return "upcoming"
   }
 
-  const dueDateStatus = getDueDateStatus()
-
-  const getDueDateColor = () => {
-    switch (dueDateStatus) {
-      case "overdue":
-        return "text-red-500"
-      case "due-today":
-        return "text-orange-500"
-      case "due-soon":
-        return "text-yellow-500"
+  const getPriorityText = (priority: Priority) => {
+    switch (priority) {
+      case "high":
+        return <span className="text-red-500 font-medium">High</span>
+      case "medium":
+        return <span className="text-amber-500 font-medium">Medium</span>
+      case "low":
+        return <span className="text-blue-500 font-medium">Low</span>
       default:
-        return "text-gray-500"
+        return null
     }
   }
 
@@ -110,14 +103,10 @@ export function TaskCard({ task, client, onReviewChange, columnTitle, onEdit, on
       <CardContent className="p-3 pt-1">
         <CardDescription>{task.description}</CardDescription>
 
-        {task.dueDate && (
-          <div className={`flex items-center mt-2 text-xs ${getDueDateColor()}`}>
-            <Calendar className="h-3 w-3 mr-1" />
-            <span>
-              Due: {format(parseISO(task.dueDate), "MMM d, yyyy")}
-              {dueDateStatus === "overdue" && " (Overdue)"}
-              {dueDateStatus === "due-today" && " (Today)"}
-            </span>
+        {task.priority && (
+          <div className="flex items-center mt-2 text-xs gap-1">
+            {getPriorityIcon(task.priority)}
+            <span>Priority: {getPriorityText(task.priority)}</span>
           </div>
         )}
       </CardContent>

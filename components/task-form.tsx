@@ -9,12 +9,8 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { CalendarIcon } from "lucide-react"
-import { format } from "date-fns"
-import { cn } from "@/lib/utils"
-import type { Client, Task } from "@/lib/db"
+import { AlertTriangle, AlertCircle, AlertOctagon } from "lucide-react"
+import type { Client, Task, Priority } from "@/lib/db"
 
 interface TaskFormProps {
   clients: Client[]
@@ -26,7 +22,7 @@ export function TaskForm({ clients, onSubmit, onCancel }: TaskFormProps) {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [clientId, setClientId] = useState<string | null>(null)
-  const [dueDate, setDueDate] = useState<Date | null>(null)
+  const [priority, setPriority] = useState<Priority>(null)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -38,13 +34,13 @@ export function TaskForm({ clients, onSubmit, onCancel }: TaskFormProps) {
       status: "todo",
       clientId,
       reviewed: null,
-      dueDate: dueDate ? dueDate.toISOString() : null,
+      priority,
     })
   }
 
   return (
     <Dialog open={true} onOpenChange={onCancel}>
-      <DialogContent className="sm:max-w-[425px] overflow-visible">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Add New Task</DialogTitle>
         </DialogHeader>
@@ -87,37 +83,33 @@ export function TaskForm({ clients, onSubmit, onCancel }: TaskFormProps) {
               </Select>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="dueDate">Due Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn("w-full justify-start text-left font-normal", !dueDate && "text-muted-foreground")}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dueDate ? format(dueDate, "PPP") : "Select a date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 z-[9999]" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={dueDate}
-                    onSelect={setDueDate}
-                    initialFocus
-                    onDayClick={(day, modifiers) => {
-                      if (!modifiers.disabled) {
-                        setDueDate(day)
-                      }
-                    }}
-                  />
-                </PopoverContent>
-              </Popover>
-              {dueDate && (
-                <Button type="button" variant="ghost" size="sm" onClick={() => setDueDate(null)} className="w-fit">
-                  Clear date
-                </Button>
-              )}
+              <Label htmlFor="priority">Priority</Label>
+              <Select onValueChange={(value) => setPriority(value as Priority)}>
+                <SelectTrigger id="priority">
+                  <SelectValue placeholder="Select priority" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="high" className="text-red-500 font-medium">
+                    <div className="flex items-center">
+                      <AlertOctagon className="h-4 w-4 mr-2" />
+                      High
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="medium" className="text-amber-500 font-medium">
+                    <div className="flex items-center">
+                      <AlertTriangle className="h-4 w-4 mr-2" />
+                      Medium
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="low" className="text-blue-500 font-medium">
+                    <div className="flex items-center">
+                      <AlertCircle className="h-4 w-4 mr-2" />
+                      Low
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="null">No priority</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
